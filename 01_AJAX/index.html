@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Document</title>
+    <style>
+    * {
+        margin: 0;
+        padding: 0;
+    }
+
+    li {
+        list-style: none;
+    }
+
+    .wrap {
+        width: 846px;
+        margin-right: auto;
+        margin-left: auto;
+    }
+
+    .pagenation {
+        overflow: hidden;
+    }
+
+    .pagenation li {
+        float: left;
+        padding: 2px 10px;
+        margin: 10px;
+        border: 1px solid #d8d8d8;
+        cursor: pointer;
+        border-radius: 3px;
+        transition: .6s;
+    }
+
+    .pagenation li:hover,
+    li.active {
+        border-color: #00b90d;
+        color: #00b90d;
+    }
+
+    .clearfix:after {
+        content: ".";
+        font-size: 0;
+        overflow: hidden;
+        display: block;
+        clear: both;
+    }
+
+    .list {}
+
+    .list li {
+        width: 240px;
+        border: 1px solid transparent;
+        padding: 10px;
+        float: left;
+        margin: 10px;
+        box-shadow: 0 0 10px #e2e2e2;
+        transition: .6s;
+    }
+
+    .list li:hover {
+        box-shadow: 0 0 50px #e2e2e2;
+    }
+
+    .list li a {
+        font-size: 0;
+        display: block;
+        height: 160px;
+        overflow: hidden;
+    }
+
+    .list li a img {
+        width: 100%;
+        vertical-align: middle;
+    }
+
+    .list li p {
+        color: #929292;
+        line-height: 24px;
+    }
+
+    .list li p:nth-of-type(1) {
+        margin-top: 10px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .list li p:nth-of-type(2) {
+        font-size: 14px;
+        height: 48px;
+        margin-top: 10px;
+        -webkit-line-clamp: 2;
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        word-break: break-all;
+    }
+
+    .mask {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(255, 255, 255, 0.3);
+        display: none;
+    }
+    .loading {
+        margin: 150px auto;
+        border-radius: 50%;
+        width: 50px;
+        height: 50px;
+        border: 10px solid #fff;
+        border-top-color: #000;
+        animation: loading 1.1s infinite linear;
+    }
+
+    @keyframes loading {
+        from {
+            transform: rotate(0deg);
+        }
+        to {
+            transform: rotate(360deg);
+        }
+    }
+    </style>
+</head>
+
+<body>
+    <div class="wrap">
+        <ol class="pagenation">
+            <li data-page=1>1</li>
+            <li data-page=2>2</li>
+            <li data-page=3>3</li>
+            <li data-page=4>4</li>
+        </ol>
+        <ul class="list clearfix"></ul>
+    </div>
+    <div class="mask">
+        <div class="loading"></div>
+    </div>
+    <script>
+    const Demo = {
+        init() {
+            this.oOl = document.querySelector('.pagenation');
+            this.aOlLi = document.querySelectorAll('.pagenation li');
+            this.oUl = document.querySelector('.list');
+            this.oMask = document.querySelector('.mask');
+            this.url = 'http://photo.sina.cn/aj/index';
+            this.jsonpCallFnName = '__onGetData__';
+
+            // 绑定各种事件
+            this.bindEvent();
+            // 第一次加载或刷新
+            this.firstOrReload();
+            // 初始化 JSONP 的回到函数
+            this.jsonpCallBack();
+        },
+        bindEvent() {
+            // 点击分页
+            this.oOl.addEventListener('click', this.handleClick.bind(this));
+            // 监听浏览器前进或后退
+            window.addEventListener('popstate', this.handlePopstate.bind(this));
+        },
+        firstOrReload() {
+            let matchCon = location.search.match(/[?&]?page=(\d+)&?/);
+            if (!matchCon) {
+                console.log('第一次');
+                this.initState(1);
+            } else {
+                console.log('刷新');
+                let initPage = matchCon[1];
+                // 刷新时已经有设置好的 url 了，不再重复设置了
+                this.initState(initPage, true);
+            }
+        },
+        jsonpCallBack() {
+            window[this.jsonpCallFnName] = data => {
+                // 拿到数据后删除创建的 script
+                document.head.removeChild(this.script);
+                // 渲染
+                this.renderCon(data.data);
+                // 渲染完成后关闭
+                this.controlLoading(false);
+                // 渲染完成后设置 Url
+                this.isForwardOrBack || this.pushState(this.pageNum);
+                // 渲染完成后设置高亮按钮
+                this.setActive(this.pageNum);
+            };
+        },
+        handlePopstate() {
+            // ?或&有或没有，最后一个&有或没有
+            let matchCon = location.search.match(/[?&]?page=(\d+)&?/);
+            // 倒退到没有不设置默认值会报错
+            let initPage = matchCon ? matchCon[1] : 1;
+            // 这里就不要再设置 url 了
+            this.initState(initPage, true);
+        },
+        handleClick(e) {
+            let pageNum = e.target.getAttribute('data-page');
+            if (pageNum) {
+                this.initState(pageNum);
+            }
+        },
+        initState(pageNum, isForwardOrBack = false) {
+            // 显示 Loading
+            this.controlLoading(true);
+            // 加载数据，注意这里加载数据玩会自动执行 window.__onGetData__ 函数
+            this.requestData(pageNum);
+            // 缓存 pageNum，以便 window.__onGetData__ 函数中使用
+            this.pageNum = pageNum;
+            // isForwardOrBack=false 代表会 pushstate
+            this.isForwardOrBack = isForwardOrBack;
+        },
+        setActive(pageNum) {
+            this.aOlLi.forEach(node => node.classList.remove('active'));
+            this.aOlLi[pageNum - 1].classList.add('active');
+        },
+        pushState(pageNum) {
+            // let absoluteUrl = location.pathname + '?page=' + pageNum;
+            let relativeUrl = '?page=' + pageNum;
+            // 这里的第三个参数可以是一个绝对地址或者一个相对地址
+            history.pushState(null, document.title, relativeUrl);
+        },
+        requestData(pageNum, onSuc) {
+            let data = {
+                page: pageNum,
+                cate: 'recommend',
+                jsoncallback: this.jsonpCallFnName
+            };
+
+            this.jsonp(data);
+        },
+        jsonp(data) {
+            let montageData = Object.keys(data).reduce((memo, item) => {
+                memo += item + '=' + data[item] + '&'
+                return memo;
+            }, '');
+            let urlFull = this.url + '?' + montageData.slice(0, -1);
+
+            this.script = document.createElement('script');
+            this.script.src = urlFull;
+            document.head.appendChild(this.script);
+        },
+        renderCon(data) {
+            let strTmp = '';
+            data.forEach(item => {
+                strTmp += `
+                    <li>
+                        <a href="${item.wap_url}">
+                            <img src="${item.img_url}" alt="${item.intro}">
+                        </a>
+                        <p>${item.short_name}</p>
+                        <p>${item.short_intro}</p>
+                    </li>
+                `;
+            });
+            this.oUl.innerHTML = strTmp;
+        },
+        controlLoading(isShow) {
+            this.oMask.style.display = isShow ? 'block' : 'none';
+        }
+    };
+    Demo.init();
+    </script>
+</body>
+
+</html>

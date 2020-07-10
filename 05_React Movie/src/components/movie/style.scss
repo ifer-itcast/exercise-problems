@@ -1,0 +1,35 @@
+.wrapper {
+    flex: 1;
+    overflow-y: auto;
+    .list{
+        display: flex;
+        flex: 1;
+        justify-content: space-between;
+        flex-wrap: wrap;
+    }
+    .movietype{
+        font-size: 12px;
+        margin-top: 10px;
+        margin-bottom: 0;
+    }
+}
+.detail {
+    overflow-y: auto;
+    .title{
+        font-size: 30px;
+        text-align: center;
+    }
+    .imgWrap{
+        text-align: center;
+        img{
+            width: 260px;
+        }
+    }
+    .con{
+        margin-top: 20px;
+        line-height: 30px;
+        p{
+            text-indent: 28px;
+        }
+    }
+}

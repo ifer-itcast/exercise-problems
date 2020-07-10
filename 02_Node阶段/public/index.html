@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+
+<body>
+    <form style="width: 500px; margin: 40px 0 20px 40px;">
+        <div class="row">
+            <div class="col">
+                <input type="text" class="form-control" placeholder="请输入内容">
+            </div>
+            <div class="col" style="padding-left: 0;">
+                <button type="button" class="btn btn-primary">发布消息</button>
+            </div>
+        </div>
+    </form>
+    <ul class="list-group" style="margin-left: 42px; list-style: none; width: 344px;">
+        <!-- <li class="list-group-item">Cras justo odio</li> -->
+    </ul>
+    <link href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/4.5.0/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.bootcdn.net/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script>
+        var oTxt = document.querySelector('input');
+        var oBtn = document.querySelector('button');
+        var oUl = document.querySelector('ul');
+
+        // 增
+        oBtn.onclick = function () {
+            $.post('/add', { msg: oTxt.value }).then(res => {
+                renderData(res);
+                oTxt.value = '';
+            });
+        };
+
+        // 获
+        function getData() {
+            $.get('/list').then(res => {
+                renderData(res);
+            });
+        }
+        getData();
+
+        // 删
+        $('ul').on('click', 'a', function (e) {
+            e.preventDefault();
+            let id = $(this).data('id');
+            $.post('/delete', { id }).then(res => {
+                renderData(res);
+            });
+        });
+
+        // 改
+        $('ul').on('dblclick', 'span', function (e) {
+            e.preventDefault();
+            $(this).attr('contenteditable', true);
+        });
+
+        $('ul').on('blur', 'span', function () {
+            $(this).attr('contenteditable', false);
+            let id = $(this).siblings('a').data('id');
+            $.post('/edit', { id, msg: $(this).text() }, function(res) {
+
+            });
+        });
+
+        function renderData(data) {
+            let str = '';
+            for (var i = 0; i < data.length; i++) {
+                str += `<li class="list-group-item"><span>${data[i].msg}</span><a data-id="${data[i].id}" href="#" style="float:right;">删除</a></li>`;
+            }
+            oUl.innerHTML = str;
+        }
+    </script>
+</body>
+
+</html>

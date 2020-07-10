@@ -1,0 +1,11 @@
+.ant-menu-inline .ant-menu-item{
+    margin-top: 0;
+}
+.ant-card{
+    margin-bottom: 24px;
+}
+
+.ant-card-body{
+    padding-top: 15px;
+    padding-bottom: 10px;
+}
